@@ -8,6 +8,8 @@ coverage/
 .env
 .env.*
 !.env.example
+ADMINISTRATION.md
+PRESENTATION-VIDEO.md
 
 # Fichiers temporaires et journaux
 .tmp/

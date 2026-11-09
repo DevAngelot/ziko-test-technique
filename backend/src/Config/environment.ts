@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const schema = z.object({
+  HOST: z.string().min(1).default('0.0.0.0'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DB_HOST: z.string().min(1),
   DB_PORT: z.coerce.number().int().min(1).max(65535).default(5432),

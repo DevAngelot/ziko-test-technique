@@ -4,7 +4,7 @@ import { pool } from './Config/database.js';
 
 try {
   await pool.query('SELECT 1');
-  const server = createApp(pool).listen(config.PORT, '0.0.0.0', () => {
+  const server = createApp(pool).listen(config.PORT, config.HOST, () => {
     console.log(`API Ziko : http://localhost:${config.PORT}`);
   });
   server.on('error', async () => {

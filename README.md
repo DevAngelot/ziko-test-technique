@@ -4,6 +4,8 @@ API réalisée pour le test back-end d'Angelot Mpata : produits, commandes et pa
 
 Le dossier `frontend/` contient une interface de présentation en **React, Vite et CSS** connectée à cette API.
 
+Application en ligne : **https://ziko-test-technique.angelotmpata.net**.
+
 ## Démarrer sur son ordinateur
 
 ### Avec Docker
@@ -205,11 +207,15 @@ La création actuelle du schéma est réexécutable, mais `CREATE TABLE IF NOT E
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tests automatiques         | Onze tests PostgreSQL réussis lors de la vérification du 9 novembre 2026.                                                                                       |
 | Docker en une commande     | `backend/Dockerfile` et `compose.yaml` fournis pour `docker compose up --build`. Exécution non vérifiée dans cet environnement, où Docker n'est pas disponible. |
-| Mise en ligne avec un lien | Non réalisée dans ce projet ; aucun lien public fourni.                                                                                                         |
+| Mise en ligne avec un lien | https://ziko-test-technique.angelotmpata.net — frontend Nginx, backend PM2, PostgreSQL et HTTPS Certbot. Parcours complet vérifié dans le navigateur.           |
 
 Le workflow `.github/workflows/ci.yml` compile et teste l'API avec PostgreSQL à chaque push ou pull request sur GitHub. Son exécution distante reste à vérifier après publication.
 
 ## Déploiement facultatif
+
+Consulter le [guide d’administration du VPS](ADMINISTRATION.md) pour les emplacements, PM2, les logs, les mises à jour, Nginx, HTTPS et PostgreSQL.
+
+### Autre hébergeur
 
 Sur un hébergeur compatible Node.js, utiliser `backend` comme répertoire de travail :
 
