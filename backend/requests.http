@@ -1,0 +1,33 @@
+@baseUrl = http://localhost:3000
+
+### 1. Créer un produit
+# @name product
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{"name":"Café de Kinshasa","price":2500,"stock":10}
+
+### 2. Créer une commande
+# @name order
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{"productId":"{{product.response.body.id}}","quantity":2}
+
+### 3. Payer, puis réexécuter CETTE requête sans changer l'identifiant
+POST {{baseUrl}}/orders/{{order.response.body.id}}/pay
+Content-Type: application/json
+
+{"paymentId":"MM-{{order.response.body.id}}"}
+
+### 4. Consulter la commande
+GET {{baseUrl}}/orders/{{order.response.body.id}}
+
+### 5. Vérifier le stock à 8
+GET {{baseUrl}}/products
+
+### 6. Autre paiement sur la même commande : 409
+POST {{baseUrl}}/orders/{{order.response.body.id}}/pay
+Content-Type: application/json
+
+{"paymentId":"AUTRE-{{order.response.body.id}}"}

@@ -1,0 +1,19 @@
+# Dépendances et fichiers générés
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Configuration privée ; conserver le modèle public
+.env
+.env.*
+!.env.example
+
+# Fichiers temporaires et journaux
+.tmp/
+*.log
+
+# Fichiers du système d'exploitation
+.DS_Store
+Thumbs.db
+Desktop.ini

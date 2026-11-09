@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ziko
+      POSTGRES_USER: ziko
+      POSTGRES_PASSWORD: local_demo_password
+    volumes:
+      - ziko_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ziko -d ziko']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ./backend
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ziko
+      DB_USER: ziko
+      DB_PASSWORD: local_demo_password
+      DB_SSL: 'false'
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    ports:
+      - '5173:80'
+    depends_on:
+      - api
+volumes:
+  ziko_data:
