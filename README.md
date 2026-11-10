@@ -4,9 +4,22 @@ API réalisée pour le test back-end d'Angelot Mpata : produits, commandes et pa
 
 Le dossier `frontend/` contient une interface de présentation en **React, Vite et CSS** connectée à cette API.
 
-Application en ligne : **https://ziko-test-technique.angelotmpata.net**.
+- **Application publique (frontend)** : [Ouvrir la boutique Ziko](https://ziko-test-technique.angelotmpata.net).
+- **Dépôt GitHub public** : [DevAngelot/ziko-test-technique](https://github.com/DevAngelot/ziko-test-technique).
+- **État de l’API et de PostgreSQL** : [Vérifier le service](https://ziko-test-technique.angelotmpata.net/api/health).
+
+L’interface utilise la véritable API et PostgreSQL. Elle sert de démonstration au test backend ; les paiements restent simulés, sans débit Mobile Money réel. Une commande contient un seul produit, conformément au sujet. L’authentification et le panier multi-produits sont des évolutions possibles, pas des fonctionnalités déjà présentes.
 
 ## Démarrer sur son ordinateur
+
+Récupérer le projet avec Git, puis se placer à sa racine :
+
+```sh
+git clone https://github.com/DevAngelot/ziko-test-technique.git
+cd ziko-test-technique
+```
+
+Choisir ensuite le démarrage avec Docker ou l’installation manuelle ci-dessous. Le dépôt contient les deux applications ; le README commun explique leur lancement.
 
 ### Avec Docker
 
@@ -85,6 +98,8 @@ Le formulaire de consultation récupère une commande par son UUID, y compris ap
 ## API
 
 Toutes les requêtes d'écriture utilisent `Content-Type: application/json`.
+
+Les chemins ci-dessous sont relatifs à l’API : utiliser `http://localhost:3000` en local, ou `https://ziko-test-technique.angelotmpata.net/api` pour la version en ligne. Par exemple, la liste publique des produits est accessible à `/api/products` sur le domaine de l’application.
 
 | Méthode | Chemin                      | Corps                                       | Résultat                                        |
 | ------- | --------------------------- | ------------------------------------------- | ----------------------------------------------- |
@@ -193,11 +208,43 @@ npm run demo
 
 Le script utilise `PORT` du `.env`, sauf si `API_URL` est fourni. Il affiche les requêtes/réponses et vérifie que le stock final est 8. Il conserve le produit et la commande de démonstration pour pouvoir les consulter. Pour ralentir l'affichage sous PowerShell : `$env:DEMO_PAUSE_MS='10000'`, puis `npm run demo`.
 
-Un fichier [requests.http](backend/requests.http) permet aussi une exécution manuelle avec un client HTTP compatible. Pour la vidéo de 1 à 2 minutes, montrer la création du produit, la commande, le premier paiement, puis le même paiement rejoué : `replayed: true` et stock toujours à 8. Le script prépare la démonstration ; la capture vidéo reste à enregistrer.
+Un fichier [requests.http](backend/requests.http) permet aussi une exécution manuelle avec un client HTTP compatible.
 
 ## Avec davantage de temps
 
-Ajouter l'authentification et les droits administrateur/client, une pagination, des migrations SQL versionnées pour faire évoluer le schéma, des limites de débit, des logs structurés sans secrets et des métriques. Pour un vrai paiement : vérifier les signatures des notifications, l'opérateur, le montant, la devise et le destinataire, puis gérer la réconciliation des transactions. Pour la production : HTTPS, sauvegardes, compte SQL aux droits minimaux et tests de charge.
+Le périmètre actuel privilégie les cinq opérations demandées et la protection contre le double paiement. Pour transformer cette démonstration en application de boutique, les évolutions seraient introduites progressivement, avec des tests à chaque étape. Les éléments ci-dessous sont **à développer**, sauf lorsqu’un mécanisme existant est explicitement mentionné.
+
+### Priorité 1 : protéger les comptes et fiabiliser l’exploitation
+
+| Évolution                                 | Comportement attendu et raison                                                                                                                                                                                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Comptes clients et connexion              | Inscription, connexion, déconnexion et récupération de compte. Stocker uniquement des mots de passe hachés et protéger les sessions. Un client retrouve ses commandes après connexion.                                                          |
+| Droits administrateur et client           | Réserver la création et la gestion des produits à l’administrateur. Vérifier côté API qu’un client peut consulter et payer uniquement ses propres commandes ; masquer un bouton dans React ne suffit pas.                                       |
+| Protection des accès et suivi des erreurs | Limiter les tentatives de connexion et les appels excessifs. Ajouter des logs structurés avec un identifiant de requête et des alertes de disponibilité, sans enregistrer de secrets. Cela facilite le diagnostic d’un paiement ou d’une panne. |
+| Sauvegardes et évolution de la base       | Programmer des sauvegardes PostgreSQL, conserver une copie hors du VPS et tester leur restauration. Ajouter des migrations versionnées et séparer les droits du compte de migration de ceux de l’application.                                   |
+
+HTTPS, le reverse proxy Nginx et le redémarrage du backend avec PM2 sont **déjà en place**. Le guide d’administration fournit une commande de sauvegarde manuelle ; une sauvegarde périodique avec restauration testée reste à mettre en œuvre.
+
+### Priorité 2 : enrichir les achats et la gestion du catalogue
+
+| Évolution                        | Comportement attendu et raison                                                                                                                                                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Panier multi-produits            | Ajouter, retirer et modifier les quantités de plusieurs produits. Créer des lignes de commande conservant le prix de chaque article au moment de l’achat et calculer un total exact.                                              |
+| Paiement atomique d’un panier    | Vérifier et diminuer les stocks de toutes les lignes dans une transaction. Si un article manque, ne valider aucun paiement ni décompte partiel. Verrouiller les produits dans un ordre stable et tester les achats simultanés.    |
+| Gestion des produits et du stock | Modifier les fiches, ajouter descriptions, catégories et images, puis archiver les produits retirés de la vente sans perdre l’historique des commandes. Journaliser les réapprovisionnements et corrections de stock.             |
+| Recherche et pagination          | Rechercher les produits et les commandes, filtrer les commandes par date et statut, puis paginer les résultats côté API. Éviter de charger tout le catalogue ou tout l’historique en une requête.                                 |
+| Cycle de vie des commandes       | Ajouter annulation, préparation, expédition et livraison avec des transitions autorisées. Définir les règles de réservation et d’expiration du stock avant leur implémentation, et empêcher toute restitution de stock en double. |
+
+### Priorité 3 : intégrer un paiement réel et accompagner la montée en charge
+
+| Évolution                               | Comportement attendu et raison                                                                                                                                                                                                                                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intégration Mobile Money                | Choisir un opérateur, utiliser son environnement de test et vérifier les notifications signées, le montant, la devise et le destinataire. Un identifiant envoyé par le navigateur ne serait plus suffisant pour déclarer une commande payée.                                                                |
+| Paiements asynchrones et remboursements | Gérer les confirmations tardives, échecs et notifications répétées. Utiliser l’idempotence de l’opérateur, rapprocher les transactions avec la base et prévoir des remboursements traçables sans double exécution. Une transaction PostgreSQL seule ne peut pas annuler un débit chez un opérateur externe. |
+| Notifications et justificatifs          | Envoyer une confirmation après validation du paiement, fournir un reçu et suivre la livraison. Prévoir une file de tâches avec reprise des échecs pour qu’un problème d’envoi ne fasse pas échouer le paiement.                                                                                             |
+| Qualité et performances                 | Compléter les tests API par des tests navigateur automatisés et des tests de charge. Mesurer les temps de réponse, optimiser les requêtes et les index, puis dimensionner l’hébergement selon les résultats.                                                                                                |
+
+Le critère à conserver à chaque évolution est le même : **un paiement ne doit jamais provoquer deux décomptes**, même après une coupure réseau ou lors de requêtes simultanées. Les nouvelles fonctionnalités doivent préserver les contrôles de stock et la cohérence des commandes.
 
 La création actuelle du schéma est réexécutable, mais `CREATE TABLE IF NOT EXISTS` ne met pas à jour une ancienne définition de table. C'est adapté à cette première version ; une évolution demanderait une migration explicite.
 
@@ -229,6 +276,6 @@ La base PostgreSQL doit être accessible depuis l'hébergeur. Activer `DB_SSL=tr
 
 ## Remise du test
 
-Publier le dépôt GitHub en accès public, avec ce README, et enregistrer la vidéo de 1 à 2 minutes. Les fichiers `.env`, `node_modules/` et `dist/` sont exclus par `.gitignore` ; ne pas les publier.
+Le dépôt GitHub est public et l’application HTTPS est accessible, vérifications effectuées le **10 novembre 2026**. Le README présente le lancement local, les choix techniques et leurs raisons, ainsi que les améliorations envisagées, conformément aux éléments demandés dans le sujet. Les fichiers `.env`, `node_modules/` et `dist/` sont exclus par `.gitignore` ; ne pas les publier.
 
-Envoyer le lien GitHub et la vidéo à Jonathan sur WhatsApp avant le **jeudi 12 novembre 2026 à 18 h** (fuseau non précisé dans le sujet). La mise en ligne est un bonus facultatif. Le dépôt public, la vidéo et l'envoi restent à confirmer.
+La vidéo de 1 à 2 minutes et l’envoi restent à confirmer. Envoyer le lien GitHub, la vidéo et le lien de démonstration à Jonathan sur WhatsApp avant le **jeudi 12 novembre 2026 à 18 h** (fuseau non précisé dans le sujet). La mise en ligne est un bonus facultatif ; elle ne remplace pas la vidéo. Préparer également l’échange de 30 minutes : le sujet autorise l’IA, mais demande de pouvoir expliquer chaque partie du code.
